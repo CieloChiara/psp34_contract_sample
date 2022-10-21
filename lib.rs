@@ -84,6 +84,11 @@ mod nft_psp34_sample {
         //}
 
         #[ink(message)]
+        pub fn owner_of(&self, id: u32) -> Option<AccountId> {
+            self._owner_of(&Id::U32(id))
+        }
+
+        #[ink(message)]
         pub fn token_uri(&self, id: String) -> String {
             let base_uri_key: Vec<u8> = "base_uri".as_bytes().to_vec();
             let base_uri = match self.get_attribute(self.initial_id.clone(), base_uri_key) {
