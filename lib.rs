@@ -89,6 +89,12 @@ mod nft_psp34_sample {
         }
 
         #[ink(message)]
+        pub fn set_base_uri(&mut self, base_uri: String) {
+            let base_uri_key: Vec<u8> = "base_uri".as_bytes().to_vec();
+            self._set_attribute(self.initial_id.clone(), base_uri_key, base_uri.as_bytes().to_vec());
+        }
+
+        #[ink(message)]
         pub fn token_uri(&self, id: String) -> String {
             let base_uri_key: Vec<u8> = "base_uri".as_bytes().to_vec();
             let base_uri = match self.get_attribute(self.initial_id.clone(), base_uri_key) {
