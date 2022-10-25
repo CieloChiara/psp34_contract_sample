@@ -27,8 +27,8 @@ mod nft_psp34_sample {
         psp34: psp34::Data,
         #[storage_field]
         metadata: Data,
-        initial_id: Id,
-        next_token_id: u32,
+        initial_id: u64,
+        next_token_id: u64,
     }
 
     impl PSP34 for Contract {}
@@ -38,14 +38,14 @@ mod nft_psp34_sample {
 
     impl Contract {
         #[ink(constructor)]
-        pub fn new(id: Id, name: String, symbol: String, base_uri: String) -> Self {
+        pub fn new(id: u64, name: String, symbol: String, base_uri: String) -> Self {
             ink_lang::codegen::initialize_contract(|instance: &mut Self| {
                 let name_key: Vec<u8> = "name".as_bytes().to_vec();
                 let symbol_key: Vec<u8> = "symbol".as_bytes().to_vec();
                 let base_uri_key: Vec<u8> = "base_uri".as_bytes().to_vec();
-                instance._set_attribute(id.clone(), name_key, name.as_bytes().to_vec());
-                instance._set_attribute(id.clone(), symbol_key, symbol.as_bytes().to_vec());
-                instance._set_attribute(id.clone(), base_uri_key, base_uri.as_bytes().to_vec());
+                instance._set_attribute(Id::U64(id.clone()), name_key, name.as_bytes().to_vec());
+                instance._set_attribute(Id::U64(id.clone()), symbol_key, symbol.as_bytes().to_vec());
+                instance._set_attribute(Id::U64(id.clone()), base_uri_key, base_uri.as_bytes().to_vec());
                 instance.initial_id = id;
             })
         }
@@ -65,7 +65,7 @@ mod nft_psp34_sample {
 
         #[ink(message)]
         pub fn mint_token(&mut self) -> Result<(), PSP34Error> {
-            self._mint_to(Self::env().caller(), Id::U32(self.next_token_id))?;
+            self._mint_to(Self::env().caller(), Id::U64(self.next_token_id))?;
             self.next_token_id += 1;
             Ok(())
         }
@@ -82,17 +82,17 @@ mod nft_psp34_sample {
 
         #[ink(message)]
         #[ink(payable)]
-        pub fn mint_for_sale(&mut self, account:AccountId, id: u32) -> Result<(), PSP34Error> {
+        pub fn mint_for_sale(&mut self, account:AccountId, id: Id) -> Result<(), PSP34Error> {
             let transfered_value = self.env().transferred_value();
             if transfered_value < 1000000000000000000 {
                 return Err(PSP34Error::Custom("Insufficient mint price.".to_string()));
             }
-            self._mint_to(account, Id::U32(id))
+            self._mint_to(account, id)
         }
 
         #[ink(message)]
-        pub fn burn_token(&mut self, account:AccountId, id: u32) -> Result<(), PSP34Error> {
-            PSP34Burnable::burn(self, account, Id::U32(id))
+        pub fn burn_token(&mut self, account:AccountId, id: Id) -> Result<(), PSP34Error> {
+            PSP34Burnable::burn(self, account, id)
         }
 
         #[ink(message)]
@@ -106,25 +106,25 @@ mod nft_psp34_sample {
         #[ink(message)]
         pub fn set_base_uri(&mut self, base_uri: String) {
             let base_uri_key: Vec<u8> = "base_uri".as_bytes().to_vec();
-            self._set_attribute(self.initial_id.clone(), base_uri_key, base_uri.as_bytes().to_vec());
+            self._set_attribute(Id::U64(self.initial_id.clone()), base_uri_key, base_uri.as_bytes().to_vec());
         }
 
         #[ink(message)]
-        pub fn set_next_token_id(&mut self, id: u32) {
+        pub fn set_next_token_id(&mut self, id: u64) {
             self.next_token_id = id
         }
 
         #[ink(message)]
-        pub fn token_uri(&self, id: String) -> String {
+        pub fn token_uri(&self, id: Id) -> String {
             let base_uri_key: Vec<u8> = "base_uri".as_bytes().to_vec();
-            let base_uri = match self.get_attribute(self.initial_id.clone(), base_uri_key) {
+            let base_uri = match self.get_attribute(Id::U64(self.initial_id.clone()), base_uri_key) {
                 Some(value) => value,
                 None => return "".to_string(),
             };
-            //String::from_utf8(base_uri.clone()).unwrap() + &self._get_id_string(Id::U32(token_id)) + ".json"
             let extention: &str = &".json".to_string();
-            let id_str: &str = &id.to_string();
-            String::from_utf8(base_uri.clone()).unwrap() + id_str + extention
+            String::from_utf8(base_uri.clone()).unwrap() + &self._get_id_string(id) + extention
+//            let id_str: &str = &id.to_string();
+//            String::from_utf8(base_uri.clone()).unwrap() + id_str + extention
         }
 
         #[ink(message)]
