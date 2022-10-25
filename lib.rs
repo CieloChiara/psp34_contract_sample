@@ -27,7 +27,7 @@ mod nft_psp34_sample {
         psp34: psp34::Data,
         #[storage_field]
         metadata: Data,
-        initial_id:Id,
+        initial_id: Id,
         next_token_id: u32,
     }
 
@@ -38,6 +38,18 @@ mod nft_psp34_sample {
 
     impl Contract {
         #[ink(constructor)]
+        pub fn new(id: Id, name: String, symbol: String, base_uri: String) -> Self {
+            ink_lang::codegen::initialize_contract(|instance: &mut Self| {
+                let name_key: Vec<u8> = "name".as_bytes().to_vec();
+                let symbol_key: Vec<u8> = "symbol".as_bytes().to_vec();
+                let base_uri_key: Vec<u8> = "base_uri".as_bytes().to_vec();
+                instance._set_attribute(id.clone(), name_key, name.as_bytes().to_vec());
+                instance._set_attribute(id.clone(), symbol_key, symbol.as_bytes().to_vec());
+                instance._set_attribute(id.clone(), base_uri_key, base_uri.as_bytes().to_vec());
+                instance.initial_id = id;
+            })
+        }
+/*
         pub fn new(id: u32, name: String, symbol: String, base_uri: String) -> Self {
             ink_lang::codegen::initialize_contract(|instance: &mut Self| {
                 let name_key: Vec<u8> = "name".as_bytes().to_vec();
@@ -49,6 +61,7 @@ mod nft_psp34_sample {
                 instance.initial_id = Id::U32(id);
             })
         }
+*/
 
         #[ink(message)]
         pub fn mint_token(&mut self) -> Result<(), PSP34Error> {
@@ -58,12 +71,13 @@ mod nft_psp34_sample {
         }
 
         #[ink(message)]
-        pub fn mint(&mut self, id: u32) -> Result<(), PSP34Error> {
-            self._mint_to(Self::env().caller(), Id::U32(id));
+        pub fn mint(&mut self, id: Id) -> Result<(), PSP34Error> {
+            //self._mint_to(Self::env().caller(), Id::U32(id))
+            self._mint_to(Self::env().caller(), id)
                 //Ok(()),
                 //Err(e) => return Err(e),
-            self.next_token_id += 1;
-            Ok(())
+//            self.next_token_id += 1;
+//            Ok(())
         }
 
         #[ink(message)]
@@ -73,25 +87,31 @@ mod nft_psp34_sample {
             if transfered_value < 1000000000000000000 {
                 return Err(PSP34Error::Custom("Insufficient mint price.".to_string()));
             }
-            self._mint_to(account, Id::U32(id));
-            self.next_token_id += 1;
-            Ok(())
+            self._mint_to(account, Id::U32(id))
         }
-
-        //#[ink(message)]
-        //pub fn burn_token(&mut self, account:AccountId, id: u32) -> Result<(), PSP34Error> {
-        //    PSP34Burnable::_burn(account, Id::U32(id))
-        //}
 
         #[ink(message)]
-        pub fn owner_of(&self, id: u32) -> Option<AccountId> {
-            self._owner_of(&Id::U32(id))
+        pub fn burn_token(&mut self, account:AccountId, id: u32) -> Result<(), PSP34Error> {
+            PSP34Burnable::burn(self, account, Id::U32(id))
         }
+
+        #[ink(message)]
+        pub fn owner_of(&self, id: Id) -> Option<AccountId> {
+            self._owner_of(&id)
+        }
+        //pub fn owner_of(&self, id: u32) -> Option<AccountId> {
+        //    self._owner_of(&Id::U32(id))
+        //}
 
         #[ink(message)]
         pub fn set_base_uri(&mut self, base_uri: String) {
             let base_uri_key: Vec<u8> = "base_uri".as_bytes().to_vec();
             self._set_attribute(self.initial_id.clone(), base_uri_key, base_uri.as_bytes().to_vec());
+        }
+
+        #[ink(message)]
+        pub fn set_next_token_id(&mut self, id: u32) {
+            self.next_token_id = id
         }
 
         #[ink(message)]
